@@ -15,7 +15,7 @@
 % advisable in any important application.  All use of these programs is
 % entirely at the user's own risk.
 
- Changes mage:
+ Changes made:
   burak sarac : c/c++ implementation
  */
 
