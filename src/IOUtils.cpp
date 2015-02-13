@@ -19,17 +19,74 @@
 
 #include "IOUtils.h"
 #include <iostream>
+#include <cmath>
+#include <math.h>
 #include <string>
 #include <sstream>
 #include <algorithm>
 #include <iterator>
 #include <sys/time.h>
+#include <sys/stat.h>
 struct timeval timeValue;
 IOUtils::IOUtils() {
 	// TODO Auto-generated constructor stub
 
 }
 
+int IOUtils::fileExist(string name) {
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
+
+}
+double* IOUtils::getFeaturedList(double* list, int columnSize, int rowSize) {
+
+	double* sums = (double*) malloc(sizeof(double) * rowSize);
+	double* means = (double*) malloc(sizeof(double) * rowSize);
+	double* stds = (double*) malloc(sizeof(double) * rowSize);
+	double* featuredList = (double*) malloc(sizeof(double) * rowSize * columnSize);
+
+	for (int i = 0; i < rowSize; ++i) {
+		double sum = 0.0;
+		double correction = 0.0;
+		for (int j = 0; j < columnSize; ++j) {
+			double y = list[(i * columnSize) + j] - correction;
+			double t = sum + y;
+			correction = (t - sum) - y;
+			sum = t;
+		}
+		sums[i] = sum;
+		means[i] = sums[i] / columnSize;
+	}
+
+	for (int i = 0; i < rowSize; ++i) {
+		double sum = 0.0;
+		double correction = 0.0;
+		for (int j = 0; j < columnSize; ++j) {
+			double value = std::pow((list[(i * columnSize) + j] - means[i]), 2);
+			double y = value - correction;
+			double t = sum + y;
+			correction = (t - sum) - y;
+			sum = t;
+		}
+		stds[i] = sum;
+	}
+
+	for (int i = 0; i < rowSize; ++i) {
+		stds[i] = sqrt(stds[i] / columnSize);
+	}
+
+	for (int i = 0; i < rowSize; ++i) {
+		for (int j = 0; j < columnSize; ++j) {
+			featuredList[(i * columnSize) + j] = (list[(i * columnSize) + j] - means[j]) / stds[j];
+		}
+	}
+
+	free(sums);
+	free(means);
+	free(stds);
+	free(list);
+	return featuredList;
+}
 void IOUtils::saveThetas(double* thetas, lint size) {
 	gettimeofday(&timeValue, NULL);
 	string fileName = "thetas_";
@@ -49,6 +106,9 @@ double* IOUtils::getArray(string path, lint rows, lint columns) {
 	std::string s;
 	inputStream.open(path.c_str());
 
+	if(!inputStream.is_open()){
+		throw 3;
+	}
 	lint size = columns * rows;
 	lint mListSize = sizeof(double) * size;
 	double* list = (double *) malloc(mListSize);
@@ -58,7 +118,11 @@ double* IOUtils::getArray(string path, lint rows, lint columns) {
 		if (currentRow < size) {
 
 			inputStream >> s;
-			list[currentRow++] = strtod(s.c_str(), NULL);
+			try {
+				list[currentRow++] = strtod(s.c_str(), NULL);
+			} catch (...) {
+				throw 2;
+			}
 
 		} else {
 			break;
@@ -67,5 +131,8 @@ double* IOUtils::getArray(string path, lint rows, lint columns) {
 
 	inputStream.close();
 
+	if (currentRow < (size - 1)) {
+		throw 1;
+	}
 	return list;
 }

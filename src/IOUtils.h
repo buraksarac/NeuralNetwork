@@ -21,6 +21,7 @@
 #define IOUTILS_H_
 #include <iostream>
 #include <fstream>
+#include <string>
 
 typedef unsigned long long int lint;
 using namespace std;
@@ -32,6 +33,8 @@ public:
 	IOUtils();
 	static double* getArray(string path, lint rows, lint columns);
 	static void saveThetas(double* thetas, lint size);
+	static double* getFeaturedList(double* list, int columnSize, int rowSize);
+	static int fileExist(string path);
 };
 
 #endif /* IOUTILS_H_ */
