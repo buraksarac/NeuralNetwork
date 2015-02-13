@@ -1,4 +1,4 @@
- NeuralNetwork is developed as subproject of u-db.org (public EEG database/EEG silent speech detection project) which is a prediction application using machine learning alghoritms(forward/back propagation and gradient descent). While I was studying Andrew NG coursera machine learning course I have developed C/C++ version according to tutorials.During my study I have also implemented Fmincg octave source into C language which you can find in the src folder. As I am originally a java developer NeuralNetwork is  one of my first C/C++ application so I advise you to use it with caution. Anyway I would like to inform you that I was able to use application in many cases without any problem (including Andrew NG examples or EEG data analysis) Application has multi core support (also OpenCL version included in GitHub) also you can save your existing  results and continue from this results in your next training.
+ NeuralNetwork is developed as subproject of u-db.org (public EEG database/EEG silent speech detection project) which is a prediction application using machine learning alghoritms(forward/back propagation and batch gradient descent). While I was studying Andrew NG coursera machine learning course I have developed C/C++ version according to tutorials.During my study I have also implemented Fmincg octave source into C language which you can find in the src folder. As I am originally a java developer NeuralNetwork is  one of my first C/C++ application so I advise you to use it with caution. Anyway I would like to inform you that I was able to use application in many cases without any problem (including Andrew NG examples or EEG data analysis) Application has multi core support (also OpenCL version included in GitHub) also you can save your existing  results and continue from this results in your next training.
 
 
 Parameters:
@@ -24,6 +24,8 @@ Parameters:
 -i	Number of iteration for training
 
 -l	Lambda value (multiplier for thetas)
+
+-f	Scale input (arithmetic and geometric means will be applied using std)
 
 -p	Do prediction for each input after training complete (0 for disable, 1 for enable, default 1)
 
@@ -55,11 +57,11 @@ Example Usage:
 
  Running the samples (x.dat and y.dat file in release folder) you can copy below code:
 ```
- ./NeuralNetwork -x x.dat -y y.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10 -l 1 -p 1 -st 0 -j 8
+ ./NeuralNetwork -x x.dat -y y.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10 -l 1 -p 1 -st 0 -j 1
 ```
 To increase the iteration and learning rate simply increase -i parameter. And if you want to save results set -st parameter to 1. When training finish you will see an output mentioning “thetas_xxxx.dat file has been saved.” So for your next trainign copy “thetas_xxxx.dat” then set -lt to 1 and -tp to “thetas_xxxx.dat”. Then your params should look similar to below:
 ```
-./NeuralNetwork -x x.dat -y y.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10 -l 1 -p 1 -st 1 -j 8 -lt 1 -tp  thetas_xxxx.dat
+./NeuralNetwork -x x.dat -y y.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10 -l 1 -p 1 -st 1 -j 1 -lt 1 -tp  thetas_xxxx.dat
 ```
 For other params you can run --help.
 
