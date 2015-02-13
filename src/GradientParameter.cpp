@@ -20,9 +20,7 @@
 #include "GradientParameter.h"
 #include <stdio.h>
 #include <stdlib.h>
-double* t;
-double c;
-double* cs;
+#include <deque>
 
 GradientParameter::GradientParameter(double* thetas, double cost) {
 	t = thetas;
@@ -30,9 +28,15 @@ GradientParameter::GradientParameter(double* thetas, double cost) {
 
 }
 
-GradientParameter::GradientParameter(double* thetas, double* costs) {
+GradientParameter::GradientParameter(double* thetas, deque<double> costs) {
 	t = thetas;
 	cs = costs;
+	c = 0;
+}
+
+GradientParameter::~GradientParameter() {
+	free(t);
+	cs.clear();
 }
 
 double* GradientParameter::getThetas() {
@@ -42,12 +46,7 @@ double GradientParameter::getCost() {
 	return c;
 }
 
-double* GradientParameter::getCosts() {
+deque<double> GradientParameter::getCosts() {
 	return cs;
-}
-
-void GradientParameter::destroy(){
-	free(t);
-	delete[] cs;
 }
 

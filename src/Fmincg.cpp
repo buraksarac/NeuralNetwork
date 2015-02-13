@@ -27,9 +27,12 @@
 #include "NeuralNetwork.h"
 #include <limits>
 #include <sys/time.h>
+#include <ctime>
+#include <deque>
 
 using namespace std;
-static const double RHO = 0.01; // a bunch of constants for line searches
+
+static const double RHO = 0.1; // a bunch of constants for line searches
 static const double SIG = 0.5; // RHO and SIG are the constants in the Wolfe-Powell conditions
 static const double INT = 0.1; // don't reevaluate within 0.1 of the limit of the current bracket
 static const double EXT = 3.0; // extrapolate maximum 3 times the current bracket
@@ -41,23 +44,19 @@ static NeuralNetwork* neuralNetwork;
 NeuralNetwork* Fmincg::getNN() {
 	return neuralNetwork;
 }
-GradientParameter* Fmincg::calculate(int noThreads, int numberOfLabels, int maxIterations, double* aList, int ySize, int xColumnSize, double* yList, int totalLayerCount,
+GradientParameter* Fmincg::calculate(int thetaRowCount, int noThreads, int numberOfLabels, int maxIterations, double* aList, int ySize, int xColumnSize, double* yList, int totalLayerCount,
 		int* neuronCounts, double lambda) {
 
-	double thetaRowCount = 0;
-	for (int i = 0; i < totalLayerCount - 1; i++) {
-		for (int j = 0; j < neuronCounts[i + 1]; j++) {
-			for (int k = 0; k < neuronCounts[i] + 1; k++) {
-				thetaRowCount++;
-			}
-		}
-	}
+	srand(time(0));
 
+	double nLimit = numeric_limits<double>::epsilon();
 	double* thetas = (double *) malloc(sizeof(double) * thetaRowCount);
+	int columns = 0;
 	for (int i = 0; i < totalLayerCount - 1; i++) {
 		for (int j = 0; j < neuronCounts[i + 1]; j++) {
 			for (int k = 0; k < neuronCounts[i] + 1; k++) {
-				thetas[i] = ((double) rand() / (RAND_MAX)) * (2 * numeric_limits<double>::epsilon()) - numeric_limits<double>::epsilon();
+				int r = (rand() % neuronCounts[i + 1]) + neuronCounts[i] + 1;
+				thetas[columns++] = r * 2 * nLimit - nLimit;
 			}
 		}
 	}
@@ -82,7 +81,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 	double f1 = gd->getCost();
 	double* df1 = new double[thetaRowCount];
 	double* s = new double[thetaRowCount];
-	double* results = new double[maxIterations];
+	deque<double> results;
 
 	for (int r = 0; r < thetaRowCount; r++) {
 		df1[r] = gd->getThetas()[r];
@@ -224,7 +223,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 
 		if (success) {
 			f1 = f2;
-			results[i] = f1;
+			results.push_back(f1);
 			printf("\n Next success cost: %0.50f total %i iteration and %i neural calculation complete", f1, i, n);
 			// Polack-Ribiere direction
 			double sum1 = 0.0;
@@ -293,6 +292,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 	delete[] df0;
 	delete[] df2;
 
+	//cleaning deltas is GradientParameter job now
 	return new GradientParameter(x, results);
 
 }

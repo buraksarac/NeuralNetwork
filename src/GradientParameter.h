@@ -19,15 +19,21 @@
 
 #ifndef GRADIENTPARAMETER_H_
 #define GRADIENTPARAMETER_H_
+#include <deque>
 typedef unsigned long long int lint;
+using namespace std;
 class GradientParameter {
+private:
+	double* t;
+	double c;
+	deque<double> cs;
 public:
 	GradientParameter(double* thetas,double cost);
-	GradientParameter(double* thetas,double* costs);
+	GradientParameter(double* thetas, deque<double> costs);
+	virtual ~GradientParameter();
 	double* getThetas();
 	double getCost();
-	double* getCosts();
-	void destroy();
+	deque<double> getCosts();
 };
 
 #endif /* GRADIENTPARAMETER_H_ */

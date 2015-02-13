@@ -24,111 +24,74 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-
+#include "ApplicationParameters.h"
 clock_t start, end;
 using namespace std;
-void printHelp() {
-	printf("\nUSAGE:\n");
-	printf("\n--help\tThis help info\n");
-	printf("\n-x\tX(input) file path\n");
-	printf("\n-y\tY(expected result) file path\n");
-	printf("\n-r\tRowcount of X or Y file (should be equal)\n");
-	printf("\n-c\tColumn count of X file (each row should have same count)\n");
-	printf("\n-n\tNumber of labels in Y file (how many expected result)\n");
-	printf("\n-t\tTotal layer count for neural network(including X)\n");
-	printf("\n-h\tHidden layer size (excluding bias unit)\n");
-	printf("\n-j\tNumber of cores(threads) on host pc\n");
-	printf("\n-i\tNumber of iteration for training\n");
-	printf("\n-l\tLambda value\n");
-	printf("\n-p\tDo prediction for each input after training complete (0 for disable 1 for enable default 1)\n");
-	printf("\n-tp\tTheta path. If you have previously saved a prediction result you can continue"
-			"\n\tfrom this result by loading from file path. (-lt value should be 1)\n");
-	printf("\n-lt\tLoad previously saved thetas (prediction result)"
-			"\n\t(0 for disable 1 for enable default 0) (-tp needs to be set)\n");
-	printf("\n-st\tSave thetas (prediction result)(0 for disable 1 for enable default 1)\n");
-	printf("\n");
-	printf("\nPlease see http://www.u-db.org for more details\n");
-}
 int main(int argc, char **argv) {
 
-	string aPath;
-	string bPath;
-	string tPath;
-	int rowCount;
-	int colCount;
-	int numberOfLabels;
-	int totalLayerCount;
-	int hiddenLayerSize;
-	int numberOfThreads;
-	int maxIteration;
-	double lambda = 1;
-	int predict = 1;
-	int loadThetas = 0;
-	int saveThetas = 1;
-	if ((argc % 1) != 0) {
-		printf("Invalid parameter size");
-	}
-	for (int i = 1; i < argc; i = i + 2) {
-		if (!strcmp(argv[i], "--help")) {
-			printHelp();
-			return 1;
-		} else if (!strcmp(argv[i], "-x")) {
-			aPath = argv[i + 1];
-		} else if (!strcmp(argv[i], "-y")) {
-			bPath = argv[i + 1];
-		} else if (!strcmp(argv[i], "-r")) {
-			rowCount = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-c")) {
-			colCount = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-n")) {
-			numberOfLabels = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-t")) {
-			totalLayerCount = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-h")) {
-			hiddenLayerSize = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-j")) {
-			numberOfThreads = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-i")) {
-			maxIteration = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-l")) {
-			lambda = atof(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-p")) {
-			predict = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-tp")) {
-			tPath = argv[i + 1];
-		} else if (!strcmp(argv[i], "-lt")) {
-			loadThetas = atoi(argv[i + 1]);
-		} else if (!strcmp(argv[i], "-st")) {
-			saveThetas = atoi(argv[i + 1]);
-		} else {
-			printf("Couldnt recognize user input");
-			return 0;
-		}
+	//parse and validate input parameters
+	ApplicationParameters* params = new ApplicationParameters(argc, argv);
 
+	if (!params->isValid()) {
+		return 0;
 	}
 
 	printf("Start!\n");
+	double* x;
+	double* xlist;
+	double* yTemp;
 
-	double* xlist = IOUtils::getArray(aPath, rowCount, colCount);
-	double* yTemp = IOUtils::getArray(bPath, rowCount, 1);
+	try {
+		//get file content as array
+		x = IOUtils::getArray(params->getXPath(), params->getRowCount(), params->getColumnCount());
+		//if user set scale option create featured list
+		xlist = params->scaleInputsEnabled() ? IOUtils::getFeaturedList(x, params->getColumnCount(), params->getRowCount()) : x;
+		//get expectation list
+		yTemp = IOUtils::getArray(params->getYPath(), params->getRowCount(), 1);
+	} catch (int e) {
+		string message;
+		switch (e) {
+		case 1:
+			message = "Input file doesnt have specified rowcount";
+			break;
+		case 2:
+			message = "Input file content can not be parsed as double or float";
+			break;
+		case 3:
+			message = "System couldnt read input file";
+			break;
+		default:
+			break;
+		}
+		return 0;
+	} catch (...) {
+		printf("System couldnt create double array from -x input file. Does file content correct?");
+		return 0;
+	}
 
-	double* ylist = new double[rowCount * numberOfLabels];
+	double* ylist = new double[params->getRowCount() * params->getNumberOfLabels()];
 
-	for (int r = 0; r < rowCount; r++) {
-		for (int c = 0; c < numberOfLabels; c++) {
-			ylist[(r * numberOfLabels) + c] = ((c + 1) == abs(yTemp[r])) ? 1 : 0;
+	//parse expected list to 1 and 0.
+	//i.e. if value is 3 and number of labels 6
+	//it should look like: 0 0 1 0 0 0
+	for (int r = 0; r < params->getRowCount(); r++) {
+		for (int c = 0; c < params->getNumberOfLabels(); c++) {
+			ylist[(r * params->getNumberOfLabels()) + c] = ((c + 1) == abs(yTemp[r])) ? 1 : 0;
 		}
 	}
-	int* neuronCount = new int[totalLayerCount];
-	neuronCount[0] = colCount;
-	for (int j = 1; j < totalLayerCount - 1; ++j) {
-		neuronCount[j] = hiddenLayerSize;
-	}
-	neuronCount[totalLayerCount - 1] = numberOfLabels;
 
+	//collect layer item infos in an array
+	int* neuronCount = new int[params->getTotalLayerCount()];
+	neuronCount[0] = params->getColumnCount();
+	for (int j = 1; j < params->getTotalLayerCount() - 1; ++j) {
+		neuronCount[j] = params->getHiddenLayerSize();
+	}
+	neuronCount[params->getTotalLayerCount() - 1] = params->getNumberOfLabels();
+
+	//calculate weights size
 	double* tList;
 	double thetaRowCount = 0;
-	for (int i = 0; i < totalLayerCount - 1; i++) {
+	for (int i = 0; i < params->getTotalLayerCount() - 1; i++) {
 		for (int j = 0; j < neuronCount[i + 1]; j++) {
 			for (int k = 0; k < neuronCount[i] + 1; k++) {
 				thetaRowCount++;
@@ -137,31 +100,41 @@ int main(int argc, char **argv) {
 	}
 	GradientParameter* gd;
 	start = clock();
-	if (loadThetas) {
-		tList = IOUtils::getArray(tPath, thetaRowCount, 1);
-		gd = Fmincg::calculate(numberOfThreads, thetaRowCount, numberOfLabels, maxIteration, xlist, rowCount, colCount, ylist, totalLayerCount, neuronCount, lambda, tList);
+	//check if user will continue from previously saved training data
+	if (params->loadThetasEnabled()) {
+		//load thetas
+		tList = IOUtils::getArray(params->getThetasPat(), thetaRowCount, 1);
+
+		//start iteration
+		gd = Fmincg::calculate(params->getNumberOfThreads(), thetaRowCount, params->getNumberOfLabels(), params->getMaxIteration(), xlist, params->getRowCount(),
+				params->getColumnCount(), ylist, params->getTotalLayerCount(), neuronCount, params->getLambda(), tList);
+
 	} else {
-		gd = Fmincg::calculate(numberOfThreads, numberOfLabels, maxIteration, xlist, rowCount, colCount, ylist, totalLayerCount, neuronCount, lambda);
+
+		//start iteration
+		gd = Fmincg::calculate(thetaRowCount, params->getNumberOfThreads(), params->getNumberOfLabels(), params->getMaxIteration(), xlist, params->getRowCount(), params->getColumnCount(), ylist,
+				params->getTotalLayerCount(), neuronCount, params->getLambda());
 	}
 	end = clock();
 	float diff = (((float) end - (float) start) / 1000000.0F) * 1000;
 
 	printf("\n\nProcess took: %0.3f millisecond \n", diff);
 
-	if (saveThetas) {
+	//Save thetas if requested
+	if (params->saveThetasEnabled()) {
 		IOUtils::saveThetas(gd->getThetas(), thetaRowCount);
 	}
 	NeuralNetwork* neuralNetwork = Fmincg::getNN();
-	if (predict) {
-		printf("\nPrediction will start. Calculated cost: %0.50f\n", gd->getCost());
+	if (params->isCrossPredictionEnabled()) {
+		printf("\nPrediction will start. Calculated cost: %0.50f\n", gd->getCosts().back());
 		neuralNetwork->predict(gd->getThetas(), yTemp);
 	}
 
 	neuralNetwork->~NeuralNetwork();
 	free(yTemp);
 	delete[] neuronCount;
-	gd->destroy();
 	delete gd;
+	delete params;
 	printf("\nFinish!\n");
 }
 

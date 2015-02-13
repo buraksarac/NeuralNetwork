@@ -4,6 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../src/ApplicationParameters.cpp \
 ../src/Fmincg.cpp \
 ../src/GradientParameter.cpp \
 ../src/IOUtils.cpp \
@@ -11,6 +12,7 @@ CPP_SRCS += \
 ../src/NeuralProcessor.cpp 
 
 OBJS += \
+./src/ApplicationParameters.o \
 ./src/Fmincg.o \
 ./src/GradientParameter.o \
 ./src/IOUtils.o \
@@ -18,6 +20,7 @@ OBJS += \
 ./src/NeuralProcessor.o 
 
 CPP_DEPS += \
+./src/ApplicationParameters.d \
 ./src/Fmincg.d \
 ./src/GradientParameter.d \
 ./src/IOUtils.d \

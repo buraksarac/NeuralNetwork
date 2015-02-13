@@ -28,8 +28,9 @@
 class Fmincg {
 public:
 	static NeuralNetwork* getNN();
-	static GradientParameter* calculate(int noThreads, int numberOfLabels, int maxIterations, double* aList, int ySize,int xColumnSize, double* yList, int layerCount, int* neuronCounts, double lambda);
+	static GradientParameter* calculate(int thetaRowCount, int noThreads, int numberOfLabels, int maxIterations, double* aList, int ySize,int xColumnSize, double* yList, int layerCount, int* neuronCounts, double lambda);
 	static GradientParameter* calculate(int noThreads, int thetaRowCount, int numberOfLabels, int maxIterations, double* aList, int ySize,int xColumnSize, double* yList, int layerCount, int* neuronCounts, double lambda,double* tList);
 };
 
 #endif /* SRC_FMINCG_H_ */
+

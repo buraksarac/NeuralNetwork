@@ -29,7 +29,6 @@ using namespace std;
 
 #define E (2.7182818284590452353602874713526624977572470937L )
 
-
 NeuralNetwork::NeuralNetwork(int noThreads, double* alist, double* blist, int lCount, int* nCounts, int nOfLabels, int yWeight, int xColumnSize) {
 	numberOfThreads = noThreads;
 	xList = alist;
@@ -55,7 +54,6 @@ NeuralNetwork::NeuralNetwork(int noThreads, double* alist, double* blist, int lC
 	errorSize = 0;
 	for (int i = 0; i < layerCount; ++i) {
 
-
 		neuronSize += i == layerCount - 1 ? neuronCounts[i] : neuronCounts[i] + 1;
 		nLayerCache[i + 1] = neuronSize;
 
@@ -73,7 +71,7 @@ NeuralNetwork::NeuralNetwork(int noThreads, double* alist, double* blist, int lC
 	}
 
 	mDeltaSize = sizeof(double) * deltaSize;
-	deltas = (double *) malloc(mDeltaSize);
+
 
 }
 
@@ -112,6 +110,8 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 		int xCache = xListRows * m;
 		double* x = &(xList[xCache]);
 		double* y = &(yList[yCache]);
+
+		//forward propagate
 		for (int l = 0; l < layerCount; l++) {
 			int previousLayer = nLayerCache[l];
 
@@ -137,10 +137,16 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 					}
 
 					neurons[row] = 1 / (1 + pow(E, -1 * neurons[row]));
+
+					if(l == layerCount - 1 && neurons[row] == 1){
+						neurons[row] -= 0.00000000001;
+					}
+
 				}
 			}
 		}
 
+		//backpropagate
 		for (int i = layerCount - 2; i >= 0; i--) {
 
 			int neuronSize = i == layerCount - 2 ? neuronCounts[i + 1] : neuronCounts[i + 1] + 1;
@@ -191,6 +197,7 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 			}
 		}
 
+		//calculate deltas
 		double sum = 0.0;
 		for (int i = 0; i < layerCount - 1; i++) {
 			int n1 = neuronCounts[i + 1];
@@ -302,8 +309,14 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 }
 
 GradientParameter* NeuralNetwork::calculateBackCostWithThetas(double lambda, double* thetas) {
+	//allocate place for deltas
+	deltas = (double *) malloc(mDeltaSize);
+
+	//create threads according to params
 	pthread_t* threads = (pthread_t*) malloc(sizeof(pthread_t) * (numberOfThreads - 1));
+	//we need rowcount in double value for calculation
 	double ySizeDouble = ySize;
+	//create params for each thread
 	struct stData* stDatas = (struct stData*) malloc(sizeof(struct stData) * numberOfThreads);
 	double cost = 0;
 	double** pDeltas = (double**) malloc(sizeof(double*) * numberOfThreads);
@@ -340,19 +353,21 @@ GradientParameter* NeuralNetwork::calculateBackCostWithThetas(double lambda, dou
 			pthread_create(&threads[t], NULL, calculateBackCost, (void *) &(stDatas[t]));
 
 		} else {
+			//if its last handle by main thread
 			this->calculateBackCost(&stDatas[t]);
 		}
 
 	}
 
+
+	//wait for other threads
 	for (int t = 0; t < numberOfThreads - 1; t++) {
 		pthread_join(threads[t], NULL);
 	}
 
-//	printf("\n------------------------------------------------------------------------------------------------------------------------");
-
 	double thetaSum = 0.0;
 
+	//collect all data from threads and update cost
 	int da = 0;
 	for (int l = 0; l < deltaSize; l++) {
 		int dc = (l - dLayerCache[da]) % dMatrixDimensions[da][1];
