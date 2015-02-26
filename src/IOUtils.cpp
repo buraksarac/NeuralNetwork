@@ -40,51 +40,53 @@ int IOUtils::fileExist(string name) {
 }
 double* IOUtils::getFeaturedList(double* list, int columnSize, int rowSize) {
 
-	double* sums = (double*) malloc(sizeof(double) * rowSize);
-	double* means = (double*) malloc(sizeof(double) * rowSize);
-	double* stds = (double*) malloc(sizeof(double) * rowSize);
-	double* featuredList = (double*) malloc(sizeof(double) * rowSize * columnSize);
+	double* sums = (double*) malloc(sizeof(double) * columnSize);
+	double* means = (double*) malloc(sizeof(double) * columnSize);
+	double* stds = (double*) malloc(sizeof(double) * columnSize);
+	double* featuredList = (double*) malloc(
+			sizeof(double) * rowSize * columnSize);
 
-	for (int i = 0; i < rowSize; ++i) {
+	for (int j = 0; j < columnSize; ++j) {
 		double sum = 0.0;
 		double correction = 0.0;
-		for (int j = 0; j < columnSize; ++j) {
+		for (int i = 0; i < rowSize; ++i) {
 			double y = list[(i * columnSize) + j] - correction;
 			double t = sum + y;
 			correction = (t - sum) - y;
 			sum = t;
 		}
-		sums[i] = sum;
-		means[i] = sums[i] / columnSize;
+
+		sums[j] = sum;
+		means[j] = sums[j] / rowSize;
 	}
 
-	for (int i = 0; i < rowSize; ++i) {
+	for (int j = 0; j < columnSize; ++j) {
 		double sum = 0.0;
 		double correction = 0.0;
-		for (int j = 0; j < columnSize; ++j) {
-			double value = std::pow((list[(i * columnSize) + j] - means[i]), 2);
+		for (int i = 0; i < rowSize; ++i) {
+			double value = std::pow((list[(i * columnSize) + j] - means[j]), 2);
 			double y = value - correction;
 			double t = sum + y;
 			correction = (t - sum) - y;
 			sum = t;
 		}
-		stds[i] = sum;
+		stds[j] = sum;
 	}
 
-	for (int i = 0; i < rowSize; ++i) {
-		stds[i] = sqrt(stds[i] / columnSize);
+	for (int i = 0; i < columnSize; ++i) {
+		stds[i] = sqrt(stds[i] / rowSize);
 	}
 
-	for (int i = 0; i < rowSize; ++i) {
-		for (int j = 0; j < columnSize; ++j) {
-			featuredList[(i * columnSize) + j] = (list[(i * columnSize) + j] - means[j]) / stds[j];
+	for (int j = 0; j < columnSize; ++j) {
+		for (int i = 0; i < rowSize; ++i) {
+			featuredList[(i * columnSize) + j] = (list[(i * columnSize) + j]
+					- means[j]) / stds[j];
 		}
 	}
 
 	free(sums);
 	free(means);
 	free(stds);
-	free(list);
 	return featuredList;
 }
 void IOUtils::saveThetas(double* thetas, lint size) {
@@ -95,7 +97,8 @@ void IOUtils::saveThetas(double* thetas, lint size) {
 
 	ofstream f(sstm.str().c_str());
 	copy(thetas, thetas + size, ostream_iterator<double>(f, "\n"));
-	printf("Thetas (%s) has been saved into project folder.", sstm.str().c_str());
+	printf("Thetas (%s) has been saved into project folder.",
+			sstm.str().c_str());
 }
 
 double* IOUtils::getArray(string path, lint rows, lint columns) {
@@ -106,7 +109,7 @@ double* IOUtils::getArray(string path, lint rows, lint columns) {
 	std::string s;
 	inputStream.open(path.c_str());
 
-	if(!inputStream.is_open()){
+	if (!inputStream.is_open()) {
 		throw 3;
 	}
 	lint size = columns * rows;
