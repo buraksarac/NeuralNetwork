@@ -57,7 +57,7 @@ Example Usage:
 
  Running the samples (x.dat and y.dat file in release folder) you can copy below code:
 ```
- ./NeuralNetwork -x x.dat -y y.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10 -l 1 -p 1 -st 0 -j 1
+ ./NeuralNetwork -x x.dat -y y.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10 -l 0 -p 1 -st 0 -j 1
 ```
 To increase the iteration and learning rate simply increase -i parameter. And if you want to save results set -st parameter to 1. When training finish you will see an output mentioning “thetas_xxxx.dat file has been saved.” So for your next trainign copy “thetas_xxxx.dat” then set -lt to 1 and -tp to “thetas_xxxx.dat”. Then your params should look similar to below:
 ```
