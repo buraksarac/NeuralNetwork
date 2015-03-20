@@ -138,9 +138,14 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 
 					neurons[row] = 1 / (1 + pow(E, -1 * neurons[row]));
 
-					if(l == layerCount - 1 && neurons[row] == 1){
-						neurons[row] -= 0.00000000001;
-					}
+					 if (l == layerCount - 1) {
+			                        if (neurons[row] == 1) {
+			                            neurons[row] -= 0.000001;
+			                        } else if (neurons[row] == 0) {
+			                            neurons[row] += 0.000001;
+			                        }
+
+			                    }
 
 				}
 			}
