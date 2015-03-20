@@ -40,54 +40,51 @@ int IOUtils::fileExist(string name) {
 }
 double* IOUtils::getFeaturedList(double* list, int columnSize, int rowSize) {
 
-	double* sums = (double*) malloc(sizeof(double) * columnSize);
-	double* means = (double*) malloc(sizeof(double) * columnSize);
-	double* stds = (double*) malloc(sizeof(double) * columnSize);
-	double* featuredList = (double*) malloc(
-			sizeof(double) * rowSize * columnSize);
+float* sums = (float*) malloc(sizeof(float) * rowSize);
+    float* means = (float*) malloc(sizeof(float) * rowSize);
+    float* stds = (float*) malloc(sizeof(float) * rowSize);
+    float* featuredList = (float*) malloc(sizeof(float) * rowSize * columnSize);
 
-	for (int j = 0; j < columnSize; ++j) {
-		double sum = 0.0;
-		double correction = 0.0;
-		for (int i = 0; i < rowSize; ++i) {
-			double y = list[(i * columnSize) + j] - correction;
-			double t = sum + y;
-			correction = (t - sum) - y;
-			sum = t;
-		}
+    for (int i = 0; i < rowSize; ++i) {
+        float sum = 0.0;
+        float correction = 0.0;
+        for (int j = 0; j < columnSize; ++j) {
+            float y = list[(i * columnSize) + j] - correction;
+            float t = sum + y;
+            correction = (t - sum) - y;
+            sum = t;
+        }
+        sums[i] = sum;
+        means[i] = sums[i] / columnSize;
+    }
 
-		sums[j] = sum;
-		means[j] = sums[j] / rowSize;
-	}
+    for (int i = 0; i < rowSize; ++i) {
+        float sum = 0.0;
+        float correction = 0.0;
+        for (int j = 0; j < columnSize; ++j) {
+            float value = std::pow((list[(i * columnSize) + j] - means[i]), 2);
+            float y = value - correction;
+            float t = sum + y;
+            correction = (t - sum) - y;
+            sum = t;
+        }
+        stds[i] = sum;
+    }
 
-	for (int j = 0; j < columnSize; ++j) {
-		double sum = 0.0;
-		double correction = 0.0;
-		for (int i = 0; i < rowSize; ++i) {
-			double value = std::pow((list[(i * columnSize) + j] - means[j]), 2);
-			double y = value - correction;
-			double t = sum + y;
-			correction = (t - sum) - y;
-			sum = t;
-		}
-		stds[j] = sum;
-	}
+    for (int i = 0; i < rowSize; ++i) {
+        stds[i] = sqrt(stds[i] / columnSize);
+    }
 
-	for (int i = 0; i < columnSize; ++i) {
-		stds[i] = sqrt(stds[i] / rowSize);
-	}
+    for (int i = 0; i < rowSize; ++i) {
+        for (int j = 0; j < columnSize; ++j) {
+            featuredList[(i * columnSize) + j] = (list[(i * columnSize) + j] - means[i]) / stds[i];
+        }
+    }
 
-	for (int j = 0; j < columnSize; ++j) {
-		for (int i = 0; i < rowSize; ++i) {
-			featuredList[(i * columnSize) + j] = (list[(i * columnSize) + j]
-					- means[j]) / stds[j];
-		}
-	}
-
-	free(sums);
-	free(means);
-	free(stds);
-	return featuredList;
+    free(sums);
+    free(means);
+    free(stds);
+    return featuredList;
 }
 void IOUtils::saveThetas(double* thetas, lint size) {
 	gettimeofday(&timeValue, NULL);
