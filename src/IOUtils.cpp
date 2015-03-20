@@ -40,17 +40,17 @@ int IOUtils::fileExist(string name) {
 }
 double* IOUtils::getFeaturedList(double* list, int columnSize, int rowSize) {
 
-float* sums = (float*) malloc(sizeof(float) * rowSize);
-    float* means = (float*) malloc(sizeof(float) * rowSize);
-    float* stds = (float*) malloc(sizeof(float) * rowSize);
-    float* featuredList = (float*) malloc(sizeof(float) * rowSize * columnSize);
+double* sums = (double*) malloc(sizeof(double) * rowSize);
+    double* means = (double*) malloc(sizeof(double) * rowSize);
+    double* stds = (double*) malloc(sizeof(double) * rowSize);
+    double* featuredList = (double*) malloc(sizeof(double) * rowSize * columnSize);
 
     for (int i = 0; i < rowSize; ++i) {
-        float sum = 0.0;
-        float correction = 0.0;
+        double sum = 0.0;
+        double correction = 0.0;
         for (int j = 0; j < columnSize; ++j) {
-            float y = list[(i * columnSize) + j] - correction;
-            float t = sum + y;
+            double y = list[(i * columnSize) + j] - correction;
+            double t = sum + y;
             correction = (t - sum) - y;
             sum = t;
         }
@@ -59,12 +59,12 @@ float* sums = (float*) malloc(sizeof(float) * rowSize);
     }
 
     for (int i = 0; i < rowSize; ++i) {
-        float sum = 0.0;
-        float correction = 0.0;
+        double sum = 0.0;
+        double correction = 0.0;
         for (int j = 0; j < columnSize; ++j) {
-            float value = std::pow((list[(i * columnSize) + j] - means[i]), 2);
-            float y = value - correction;
-            float t = sum + y;
+            double value = std::pow((list[(i * columnSize) + j] - means[i]), 2);
+            double y = value - correction;
+            double t = sum + y;
             correction = (t - sum) - y;
             sum = t;
         }
