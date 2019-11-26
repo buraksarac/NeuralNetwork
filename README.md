@@ -36,12 +36,14 @@ Parameters:
 
 -st	Save thetas (prediction result)(0 for disable 1 for enable default 1)
 
+-test   test vs training percent, i.e. for 10 there will be 90% training and 10% test
+
 
 Please see http://www.u-db.org for more details
 ```
  
 Installation:
- Application using Posix threads so any linux machine should run without any problem. I just tested on ubuntu so please let me know if you are successful on mac,redhat,suse or any other distro. (burak@linux.com)
+ Application using Posix threads so any linux machine should run without any problem. 
 
 After you download the source code, locate into Release folder:
 
@@ -57,9 +59,9 @@ Example Usage:
 
  Running the samples (x.dat and y.dat file in release folder) you can copy below code:
 ```
- ./NeuralNetwork -x x.dat -y y.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10 -l 0 -p 1 -st 0 -j 1
+ ./NeuralNetwork -x xShuffled.dat -y yShuffled.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10000 -l 0.00025 -p 1 -st 0 -j 4 -test 5
 ```
-To increase the iteration and learning rate simply increase -i parameter. And if you want to save results set -st parameter to 1. When training finish you will see an output mentioning “thetas_xxxx.dat file has been saved.” So for your next trainign copy “thetas_xxxx.dat” then set -lt to 1 and -tp to “thetas_xxxx.dat”. Then your params should look similar to below:
+To increase the iteration and learning rate simply increase -i parameter. For performance increase -j parameter ideally matching your core count. And if you want to save results set -st parameter to 1. When training finish you will see an output mentioning “thetas_xxxx.dat file has been saved.” So for your next trainign copy “thetas_xxxx.dat” then set -lt to 1 and -tp to “thetas_xxxx.dat”. Then your params should look similar to below:
 ```
 ./NeuralNetwork -x x.dat -y y.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 10 -l 1 -p 1 -st 1 -j 1 -lt 1 -tp  thetas_xxxx.dat
 ```
@@ -71,6 +73,10 @@ Performance:
 for single core: 410 ms 
 for 8 core: 40 ms.
  If you have AMD gpu and OpenCL installed I recommend using NeuralNetworkOpenCL. (Ofcourse with caution!)
+ On threadripper 100 iteration took 1 second for sample data using below command:
+ ./NeuralNetwork -x xShuffled.dat -y yShuffled.dat -r 5000 -c 400 -n 10 -t 3 -h 25 -i 100 -l 0.00025 -p 1 -st 0 -j 32 -test 10
+ 
+ 
 
 Memory:
  NeuralNetwork designed to handle EEG data so quite memory hungry. All inputs will be loaded into memory including hiddenlayer, error and delta values. Valgrind (memory leak tool for C++) reports no error and on my system it is using aroung 1gb memory for the sample data. I have also developed Cuda and MPI versions for large dataset to share every single iteration between machines. Soon I will be sharing them too.
