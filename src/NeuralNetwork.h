@@ -49,7 +49,7 @@ private:
 	int* neuronCounts;
 	int numberOfLabels;
 	int ySize;
-	double ySizedouble;
+	double ySizeDouble;
 	int** dMatrixDimensions;
 	int* dLayerCache;
 	int* nLayerCache;

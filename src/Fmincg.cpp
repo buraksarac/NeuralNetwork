@@ -43,10 +43,8 @@ static NeuralNetwork *neuralNetwork;
 NeuralNetwork* Fmincg::getNN() {
 	return neuralNetwork;
 }
-GradientParameter* Fmincg::calculate(int thetaRowCount, int noThreads,
-		int numberOfLabels, int maxIterations, double *aList, int ySize,
-		int xColumnSize, double *yList, int totalLayerCount, int *neuronCounts,
-		double lambda, double *yTemp, int testRows) {
+GradientParameter* Fmincg::calculate(int thetaRowCount, int noThreads, int numberOfLabels, int maxIterations, double *aList, int ySize, int xColumnSize,
+		double *yList, int totalLayerCount, int *neuronCounts, double lambda, double *yTemp, int testRows) {
 
 	srand(time(0));
 
@@ -62,27 +60,22 @@ GradientParameter* Fmincg::calculate(int thetaRowCount, int noThreads,
 		}
 	}
 
-	return Fmincg::calculate(noThreads, thetaRowCount, numberOfLabels,
-			maxIterations, aList, ySize, xColumnSize, yList, totalLayerCount,
-			neuronCounts, lambda, thetas, yTemp, testRows);
+	return Fmincg::calculate(noThreads, thetaRowCount, numberOfLabels, maxIterations, aList, ySize, xColumnSize, yList, totalLayerCount, neuronCounts, lambda,
+			thetas, yTemp, testRows);
 
 }
 
-GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount,
-		int numberOfLabels, int maxIterations, double *aList, int ySize,
-		int xColumnSize, double *yList, int layerCount, int *neuronCounts,
-		double lambda, double *tList, double *yTemp, int testRows) {
+GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numberOfLabels, int maxIterations, double *aList, int ySize, int xColumnSize,
+		double *yList, int layerCount, int *neuronCounts, double lambda, double *tList, double *yTemp, int testRows) {
 
 	double *x = tList;
 
-	neuralNetwork = new NeuralNetwork(noThreads, aList, yList, layerCount,
-			neuronCounts, numberOfLabels, ySize, xColumnSize);
+	neuralNetwork = new NeuralNetwork(noThreads, aList, yList, layerCount, neuronCounts, numberOfLabels, ySize, xColumnSize);
 	int i = 0;
 	int ls_failed = 0;   // no previous line search has failed
 	int n = 0;
 //gd instance will change during the iteration
-	GradientParameter *gd = neuralNetwork->calculateBackCostWithThetas(lambda,
-			x);
+	GradientParameter *gd = neuralNetwork->calculateBackCostWithThetas(lambda, x);
 	n++;
 	double d1 = 0.0; //search direction is steepest and calculate slope
 	double f1 = gd->getCost();
@@ -120,8 +113,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount,
 		}
 
 		//request new gradient after we update X -- octave -->[f2 df2] = eval(argstr);
-		GradientParameter *gd2 = neuralNetwork->calculateBackCostWithThetas(
-				lambda, x);
+		GradientParameter *gd2 = neuralNetwork->calculateBackCostWithThetas(lambda, x);
 		n++;
 		double f2 = gd2->getCost();
 
@@ -141,8 +133,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount,
 		delete gd2;
 		while (1) {
 			double z2 = 0.0;
-			while (((f2 > f1 + (z1 * RHO * d1)) | (d2 > (-1 * SIG * d1)))
-					& (M > 0)) {
+			while (((f2 > f1 + (z1 * RHO * d1)) | (d2 > (-1 * SIG * d1))) & (M > 0)) {
 				limit = z1;
 
 				if (f2 > f1) {
@@ -167,8 +158,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount,
 					x[r] += z2 * s[r]; //update x as X = X + z2*s;
 				}
 
-				GradientParameter *gd3 =
-						neuralNetwork->calculateBackCostWithThetas(lambda, x);
+				GradientParameter *gd3 = neuralNetwork->calculateBackCostWithThetas(lambda, x);
 				n++;
 				M = M - 1;
 				f2 = gd3->getCost();
@@ -219,8 +209,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount,
 				x[r] += z2 * s[r]; //update x as X = X + z2*s;
 			}
 
-			GradientParameter *gd4 = neuralNetwork->calculateBackCostWithThetas(
-					lambda, x);
+			GradientParameter *gd4 = neuralNetwork->calculateBackCostWithThetas(lambda, x);
 			n++;
 			M = M - 1;
 			f2 = gd4->getCost();
@@ -235,9 +224,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount,
 		if (success) {
 			f1 = f2;
 			results.push_back(f1);
-			printf(
-					"\n Next success cost: %0.22f total %i iteration and %i neural calculation complete",
-					f1, i, n);
+			printf("\n Next success cost: %0.22f total %i iteration and %i neural calculation complete", f1, i, n);
 
 			// Polack-Ribiere direction
 			double sum1 = 0.0;

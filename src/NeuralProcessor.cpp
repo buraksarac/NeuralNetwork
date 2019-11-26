@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 		if (params->getTestPercentage() == 0) {
 			neuralNetwork->predict(gd->getThetas(), yTemp);
 		} else {
-			double* testXlist = &(xlist[(params->getRowCount()) * params->getColumnCount()]);
+			 double* testXlist = &(xlist[(params->getRowCount()) * params->getColumnCount()]);
 			double* testYlist = &(yTemp[params->getRowCount()]);
 			neuralNetwork->predict(testRows, testXlist, gd->getThetas(), testYlist);
 		}
