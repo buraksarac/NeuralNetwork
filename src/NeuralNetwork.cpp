@@ -27,9 +27,11 @@
 #include <sys/time.h>
 using namespace std;
 
-#define E (2.7182818284590452353602874713526624977572470937L )
+static double E = exp(1);
 
-NeuralNetwork::NeuralNetwork(int noThreads, double* alist, double* blist, int lCount, int* nCounts, int nOfLabels, int yWeight, int xColumnSize) {
+NeuralNetwork::NeuralNetwork(int noThreads, double *alist, double *blist,
+		int lCount, int *nCounts, int nOfLabels, int yWeight, int xColumnSize) {
+	deltas = 0;
 	numberOfThreads = noThreads;
 	xList = alist;
 	yList = blist;
@@ -54,12 +56,15 @@ NeuralNetwork::NeuralNetwork(int noThreads, double* alist, double* blist, int lC
 	errorSize = 0;
 	for (int i = 0; i < layerCount; ++i) {
 
-		neuronSize += i == layerCount - 1 ? neuronCounts[i] : neuronCounts[i] + 1;
+		neuronSize +=
+				i == layerCount - 1 ? neuronCounts[i] : neuronCounts[i] + 1;
 		nLayerCache[i + 1] = neuronSize;
 
 		if (i < layerCount - 1) {
 
-			errorSize += i == layerCount - 2 ? neuronCounts[i + 1] : neuronCounts[i + 1] + 1;
+			errorSize +=
+					i == layerCount - 2 ?
+							neuronCounts[i + 1] : neuronCounts[i + 1] + 1;
 			eLayerCache[i + 1] = errorSize;
 			dMatrixDimensions[i] = new int[2];
 			dMatrixDimensions[i][0] = neuronCounts[i + 1];
@@ -71,7 +76,6 @@ NeuralNetwork::NeuralNetwork(int noThreads, double* alist, double* blist, int lC
 	}
 
 	mDeltaSize = sizeof(double) * deltaSize;
-
 
 }
 
@@ -85,67 +89,61 @@ NeuralNetwork::~NeuralNetwork() {
 }
 
 void* NeuralNetwork::calculateBackCost(void *dat) {
-	struct stData* data = (struct stData*) dat;
+	struct stData *data = (struct stData*) dat;
 	data->cost = 0;
-	double* neurons = (double*) malloc(sizeof(double) * data->neuronSize);
-	double* errors = (double*) malloc(sizeof(double) * data->errorSize);
+	double *neurons = (double*) malloc(sizeof(double) * data->neuronSize);
+	double *errors = (double*) malloc(sizeof(double) * data->errorSize);
 	data->deltas = (double*) malloc(sizeof(double) * data->deltaSize);
 	for (int i = 0; i < data->deltaSize; ++i) {
 		data->deltas[i] = 0;
 	}
 	int layerCount = data->layerCount;
-	int* neuronCounts = data->neuronCounts;
-	double* thetas = data->thetas;
-	double* xList = data->xList;
-	double* yList = data->yList;
-	int* dlayerCache = data->dlayerCache;
+	int *neuronCounts = data->neuronCounts;
+	double *thetas = data->thetas;
+	double *xList = data->xList;
+	double *yList = data->yList;
+	int *dlayerCache = data->dlayerCache;
 	int numLabels = data->numLabels;
 	int xListRows = data->xListRows;
-	int** dMatrixInfo = data->dMatrixInfo;
-	int* nLayerCache = data->nLayerCache;
-	int* eLayerCache = data->eLayerCache;
+	int **dMatrixInfo = data->dMatrixInfo;
+	int *nLayerCache = data->nLayerCache;
+	int *eLayerCache = data->eLayerCache;
 
 	for (int m = data->loopMin; m < data->loopMax; m++) {
 		int yCache = m * numLabels;
 		int xCache = xListRows * m;
-		double* x = &(xList[xCache]);
-		double* y = &(yList[yCache]);
+		double *x = &(xList[xCache]);
+		double *y = &(yList[yCache]);
 
 		//forward propagate
 		for (int l = 0; l < layerCount; l++) {
+			int lPrev = l - 1;
 			int previousLayer = nLayerCache[l];
 
-			int neuronSize = l == layerCount - 1 ? neuronCounts[l] : neuronCounts[l] + 1;
+			int neuronSize =
+					l == layerCount - 1 ? neuronCounts[l] : neuronCounts[l] + 1;
 			for (int j = 0; j < neuronSize; j++) {
+				int jPrev = j - 1;
 				int row = previousLayer + j;
 				neurons[row] = 0;
 
 				if (j == 0 && l != layerCount - 1) {
 					neurons[row] = 1;
 				} else if (l == 0) {
-					neurons[row] = x[(j - 1)];
+					neurons[row] = x[jPrev];
 				} else {
-					int dCache = dlayerCache[l - 1];
-					int pNCache = nLayerCache[l - 1];
-					int index = l == layerCount - 1 ? j : j - 1;
-					int dRowCache = (dMatrixInfo[l - 1][1] * index) + dCache;
-					int nCounts = neuronCounts[l - 1] + 1;
-					double* t = &(thetas[dRowCache]);
-					double* n = &(neurons[pNCache]);
+					int dCache = dlayerCache[lPrev];
+					int pNCache = nLayerCache[lPrev];
+					int index = l == layerCount - 1 ? j : jPrev;
+					int dRowCache = (dMatrixInfo[lPrev][1] * index) + dCache;
+					int nCounts = neuronCounts[lPrev] + 1;
+					double *t = &(thetas[dRowCache]);
+					double *n = &(neurons[pNCache]);
 					for (int k = 0; k < nCounts; k++) {
 						neurons[row] += t[k] * n[k];
 					}
 
-					neurons[row] = 1 / (1 + pow(E, -1 * neurons[row]));
-
-					 if (l == layerCount - 1) {
-			                        if (neurons[row] == 1) {
-			                            neurons[row] -= 0.000001;
-			                        } else if (neurons[row] == 0) {
-			                            neurons[row] += 0.000001;
-			                        }
-
-			                    }
+					neurons[row] = 1 / (1 + pow(E, -neurons[row]));
 
 				}
 			}
@@ -153,15 +151,17 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 
 		//backpropagate
 		for (int i = layerCount - 2; i >= 0; i--) {
-
-			int neuronSize = i == layerCount - 2 ? neuronCounts[i + 1] : neuronCounts[i + 1] + 1;
+			int iNext = i + 1;
+			int neuronSize =
+					i == layerCount - 2 ?
+							neuronCounts[iNext] : neuronCounts[iNext] + 1;
 			int previousLayer = eLayerCache[i];
-			int nCache = nLayerCache[i + 1];
+			int nCache = nLayerCache[iNext];
 
-			int dCache = dlayerCache[i + 1];
-			int eCache = eLayerCache[i + 1];
-			double* e = &(errors[eCache]);
-			double* t = &(thetas[dCache]);
+			int dCache = dlayerCache[iNext];
+			int eCache = eLayerCache[iNext];
+			double *e = &(errors[eCache]);
+			double *t = &(thetas[dCache]);
 			for (int j = neuronSize - 1; j >= 0; j--) {
 				int row = previousLayer + j;
 
@@ -173,14 +173,14 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 					int nCounts = neuronCounts[i + 2];
 					int isLast = nCounts - 1;
 					double sigmoid = (nVal * (1 - nVal));
-					double* t2 = &(t[j]);
+					double *t2 = &(t[j]);
 					int dif = nCounts % 4;
 					int siz = nCounts - dif;
 					for (int k = 0; k < siz; k = k + 4) {
-						int r = (dMatrixInfo[i + 1][1] * k);
-						int r1 = (dMatrixInfo[i + 1][1] * (k + 1));
-						int r2 = (dMatrixInfo[i + 1][1] * (k + 2));
-						int r3 = (dMatrixInfo[i + 1][1] * (k + 3));
+						int r = (dMatrixInfo[iNext][1] * k);
+						int r1 = (dMatrixInfo[iNext][1] * (k + 1));
+						int r2 = (dMatrixInfo[iNext][1] * (k + 2));
+						int r3 = (dMatrixInfo[iNext][1] * (k + 3));
 						errors[row] += t2[r] * e[k];
 						errors[row] += t2[r1] * e[k + 1];
 						errors[row] += t2[r2] * e[k + 2];
@@ -190,7 +190,7 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 
 					for (int a = 0; a < dif; a++) {
 						int k = siz + a;
-						int r = (dMatrixInfo[i + 1][1] * k);
+						int r = (dMatrixInfo[iNext][1] * k);
 						errors[row] += t2[r] * e[k];
 
 						if (k == isLast) {
@@ -205,25 +205,39 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 		//calculate deltas
 		double sum = 0.0;
 		for (int i = 0; i < layerCount - 1; i++) {
-			int n1 = neuronCounts[i + 1];
+			int iNext = i + 1;
+			int n1 = neuronCounts[iNext];
 			int n2 = neuronCounts[i] + 1;
-			int nCache1 = nLayerCache[i + 1];
+			int nCache1 = nLayerCache[iNext];
 			int eCache = eLayerCache[i];
 			int nCache = nLayerCache[i];
-			double* e = &(errors[eCache]);
-			double* n = &(neurons[nCache]);
+			double *e = &(errors[eCache]);
+			double *n = &(neurons[nCache]);
 			int isLast = i == layerCount - 2;
 			int dCache = dlayerCache[i];
-			double* d = &(data->deltas[dCache]);
+			double *d = &(data->deltas[dCache]);
 			int dif = n1 % 4;
 			int siz = n1 - dif;
 			for (int j = 0; j < siz; j = j + 4) {
 				if (isLast) {
 
-					sum += ((-1 * yList[yCache + j]) * log(neurons[nCache1 + j])) - ((1 - yList[yCache + j]) * log(1 - neurons[nCache1 + j]));
-					sum += ((-1 * yList[yCache + j + 1]) * log(neurons[nCache1 + j + 1])) - ((1 - yList[yCache + j + 1]) * log(1 - neurons[nCache1 + j + 1]));
-					sum += ((-1 * yList[yCache + j + 2]) * log(neurons[nCache1 + j + 2])) - ((1 - yList[yCache + j + 2]) * log(1 - neurons[nCache1 + j + 2]));
-					sum += ((-1 * yList[yCache + j + 3]) * log(neurons[nCache1 + j + 3])) - ((1 - yList[yCache + j + 3]) * log(1 - neurons[nCache1 + j + 3]));
+					sum +=
+							((-1 * yList[yCache + j])
+									* log(neurons[nCache1 + j]))
+									- ((1 - yList[yCache + j])
+											* log(1 - neurons[nCache1 + j]));
+					sum += ((-1 * yList[yCache + j + 1])
+							* log(neurons[nCache1 + j + 1]))
+							- ((1 - yList[yCache + j + 1])
+									* log(1 - neurons[nCache1 + j + 1]));
+					sum += ((-1 * yList[yCache + j + 2])
+							* log(neurons[nCache1 + j + 2]))
+							- ((1 - yList[yCache + j + 2])
+									* log(1 - neurons[nCache1 + j + 2]));
+					sum += ((-1 * yList[yCache + j + 3])
+							* log(neurons[nCache1 + j + 3]))
+							- ((1 - yList[yCache + j + 3])
+									* log(1 - neurons[nCache1 + j + 3]));
 				}
 				int index = i == 0 ? j + 1 : j;
 				int index2 = index + 1;
@@ -237,10 +251,10 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 				double eVal2 = e[index2];
 				double eVal3 = e[index3];
 				double eVal4 = e[index4];
-				double* d2 = &(d[drcache]);
-				double* d22 = &(d[drcache2]);
-				double* d23 = &(d[drcache3]);
-				double* d24 = &(d[drcache4]);
+				double *d2 = &(d[drcache]);
+				double *d22 = &(d[drcache2]);
+				double *d23 = &(d[drcache3]);
+				double *d24 = &(d[drcache4]);
 				int diff = n2 % 4;
 				int size = n2 - diff;
 				for (int k = 0; k < size; k = k + 4) {
@@ -277,12 +291,16 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 				int j = a + siz;
 				if (isLast) {
 
-					sum += ((-1 * yList[yCache + j]) * log(neurons[nCache1 + j])) - ((1 - yList[yCache + j]) * log(1 - neurons[nCache1 + j]));
+					sum +=
+							((-1 * yList[yCache + j])
+									* log(neurons[nCache1 + j]))
+									- ((1 - yList[yCache + j])
+											* log(1 - neurons[nCache1 + j]));
 				}
 				int index = i == 0 ? j + 1 : j;
 				int drcache = (dMatrixInfo[i][1] * j);
 				double eVal = e[index];
-				double* d2 = &(d[drcache]);
+				double *d2 = &(d[drcache]);
 				int diff = n2 % 4;
 				int size = n2 - diff;
 				for (int k = 0; k < size; k = k + 4) {
@@ -313,24 +331,29 @@ void* NeuralNetwork::calculateBackCost(void *dat) {
 	return 0;
 }
 
-GradientParameter* NeuralNetwork::calculateBackCostWithThetas(double lambda, double* thetas) {
+GradientParameter* NeuralNetwork::calculateBackCostWithThetas(double lambda,
+		double *thetas) {
 	//allocate place for deltas
-	deltas = (double *) malloc(mDeltaSize);
+	deltas = (double*) malloc(mDeltaSize);
 
 	//create threads according to params
-	pthread_t* threads = (pthread_t*) malloc(sizeof(pthread_t) * (numberOfThreads - 1));
+	pthread_t *threads = (pthread_t*) malloc(
+			sizeof(pthread_t) * (numberOfThreads - 1));
 	//we need rowcount in double value for calculation
 	double ySizedouble = ySize;
 	//create params for each thread
-	struct stData* stDatas = (struct stData*) malloc(sizeof(struct stData) * numberOfThreads);
+	struct stData *stDatas = (struct stData*) malloc(
+			sizeof(struct stData) * numberOfThreads);
 	double cost = 0;
-	double** pDeltas = (double**) malloc(sizeof(double*) * numberOfThreads);
+	double **pDeltas = (double**) malloc(sizeof(double*) * numberOfThreads);
 
 	for (int t = 0; t < numberOfThreads; ++t) {
 
 		int isLast = t == (numberOfThreads - 1);
-		int loopMin = (int) ((long) (t + 0) * (long) (ySize) / (long) numberOfThreads);
-		int loopMax = (int) ((long) (t + 1) * (long) (ySize) / (long) numberOfThreads);
+		int loopMin = (int) ((long) (t + 0) * (long) (ySize)
+				/ (long) numberOfThreads);
+		int loopMax = (int) ((long) (t + 1) * (long) (ySize)
+				/ (long) numberOfThreads);
 
 		stDatas[t].deltas = &(pDeltas[t][0]);
 		stDatas[t].xList = xList;
@@ -355,7 +378,8 @@ GradientParameter* NeuralNetwork::calculateBackCostWithThetas(double lambda, dou
 		stDatas[t].loopMax = loopMax;
 
 		if (!isLast) {
-			pthread_create(&threads[t], NULL, calculateBackCost, (void *) &(stDatas[t]));
+			pthread_create(&threads[t], NULL, calculateBackCost,
+					(void*) &(stDatas[t]));
 
 		} else {
 			//if its last handle by main thread
@@ -363,7 +387,6 @@ GradientParameter* NeuralNetwork::calculateBackCostWithThetas(double lambda, dou
 		}
 
 	}
-
 
 	//wait for other threads
 	for (int t = 0; t < numberOfThreads - 1; t++) {
@@ -409,19 +432,20 @@ GradientParameter* NeuralNetwork::calculateBackCostWithThetas(double lambda, dou
 
 }
 
-void NeuralNetwork::predict(double* tList, double* yTemp) {
+void NeuralNetwork::predict(double *tList, double *yTemp) {
 
 	int totalCorrect = 0;
 	int totalWrong = 0;
 
 	for (int i = 0; i < ySize; ++i) {
 
-		double* neurons = forwardPropogate(i, tList, &(xList[(i * xColumns)]));
+		double *neurons = forwardPropogate(i, tList, &(xList[(i * xColumns)]));
 		double closer = RAND_MAX;
 		double val = 0;
 		for (int j = 0; j < numberOfLabels; j++) {
 
-			if (fabs((1 - closer)) > fabs((1 - neurons[nLayerCache[layerCount - 1] + j]))) {
+			if (fabs((1 - closer))
+					> fabs((1 - neurons[nLayerCache[layerCount - 1] + j]))) {
 				val = j + 1;
 				closer = neurons[nLayerCache[layerCount - 1] + j];
 			}
@@ -437,24 +461,27 @@ void NeuralNetwork::predict(double* tList, double* yTemp) {
 
 	}
 
-	printf("\nPrediction complete. Total %i correct and %i wrong prediction\n", totalCorrect, totalWrong);
+	printf("\nPrediction complete. Total %i correct and %i wrong prediction\n",
+			totalCorrect, totalWrong);
 	double successRate = totalCorrect * 100 / ySize;
 	printf("\n Success rate is: %%%0.0f\n", successRate);
 }
 
-void NeuralNetwork::predict(int rows, double* xlist, double* tList, double* yTemp) {
+void NeuralNetwork::predict(int rows, double *xlist, double *tList,
+		double *yTemp) {
 
 	int totalCorrect = 0;
 	int totalWrong = 0;
 
 	for (int i = 0; i < rows; ++i) {
 
-		double* neurons = forwardPropogate(tList, &(xlist[(i * xColumns)]));
+		double *neurons = forwardPropogate(tList, &(xlist[(i * xColumns)]));
 		double closer = RAND_MAX;
 		double val = 0;
 		for (int j = 0; j < numberOfLabels; j++) {
 
-			if (fabs((1 - closer)) > fabs((1 - neurons[nLayerCache[layerCount - 1] + j]))) {
+			if (fabs((1 - closer))
+					> fabs((1 - neurons[nLayerCache[layerCount - 1] + j]))) {
 				val = j + 1;
 				closer = neurons[nLayerCache[layerCount - 1] + j];
 			}
@@ -470,18 +497,21 @@ void NeuralNetwork::predict(int rows, double* xlist, double* tList, double* yTem
 
 	}
 
-	printf("\nPrediction complete. Total %i correct and %i wrong prediction\n", totalCorrect, totalWrong);
+	printf("\nPrediction complete. Total %i correct and %i wrong prediction\n",
+			totalCorrect, totalWrong);
 	double successRate = totalCorrect * 100 / rows;
 	printf("\n Success rate is: %%%0.0f\n", successRate);
 }
-double* NeuralNetwork::forwardPropogate(int aListIndex, double* tList, double* xList) {
+double* NeuralNetwork::forwardPropogate(int aListIndex, double *tList,
+		double *xList) {
 
 	int mNeuronSize = sizeof(double) * neuronSize;
-	double* neurons = (double *) malloc(mNeuronSize);
+	double *neurons = (double*) malloc(mNeuronSize);
 	for (int l = 0; l < layerCount; l++) {
 		int previousLayer = nLayerCache[l];
 
-		int neuronSize = l == layerCount - 1 ? neuronCounts[l] : neuronCounts[l] + 1;
+		int neuronSize =
+				l == layerCount - 1 ? neuronCounts[l] : neuronCounts[l] + 1;
 		for (int j = 0; j < neuronSize; j++) {
 			int row = previousLayer + j;
 			neurons[row] = 0;
@@ -496,8 +526,8 @@ double* NeuralNetwork::forwardPropogate(int aListIndex, double* tList, double* x
 				int index = l == layerCount - 1 ? j : j - 1;
 				int dRowCache = (dMatrixDimensions[l - 1][1] * index) + dCache;
 				int nCounts = neuronCounts[l - 1] + 1;
-				double* t = &(tList[dRowCache]);
-				double* n = &(neurons[pNCache]);
+				double *t = &(tList[dRowCache]);
+				double *n = &(neurons[pNCache]);
 				for (int k = 0; k < nCounts; k++) {
 					neurons[row] += t[k] * n[k];
 				}
@@ -510,14 +540,15 @@ double* NeuralNetwork::forwardPropogate(int aListIndex, double* tList, double* x
 
 	return neurons;
 }
-double* NeuralNetwork::forwardPropogate(double* tList, double* xList) {
+double* NeuralNetwork::forwardPropogate(double *tList, double *xList) {
 
 	int mNeuronSize = sizeof(double) * neuronSize;
-	double* neurons = (double *) malloc(mNeuronSize);
+	double *neurons = (double*) malloc(mNeuronSize);
 	for (int l = 0; l < layerCount; l++) {
 		int previousLayer = nLayerCache[l];
 
-		int neuronSize = l == layerCount - 1 ? neuronCounts[l] : neuronCounts[l] + 1;
+		int neuronSize =
+				l == layerCount - 1 ? neuronCounts[l] : neuronCounts[l] + 1;
 		for (int j = 0; j < neuronSize; j++) {
 			int row = previousLayer + j;
 			neurons[row] = 0;
@@ -532,8 +563,8 @@ double* NeuralNetwork::forwardPropogate(double* tList, double* xList) {
 				int index = l == layerCount - 1 ? j : j - 1;
 				int dRowCache = (dMatrixDimensions[l - 1][1] * index) + dCache;
 				int nCounts = neuronCounts[l - 1] + 1;
-				double* t = &(tList[dRowCache]);
-				double* n = &(neurons[pNCache]);
+				double *t = &(tList[dRowCache]);
+				double *n = &(neurons[pNCache]);
 				for (int k = 0; k < nCounts; k++) {
 					neurons[row] += t[k] * n[k];
 				}

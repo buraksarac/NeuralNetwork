@@ -38,19 +38,20 @@ static const double INT = 0.1; // don't reevaluate within 0.1 of the limit of th
 static const double EXT = 3.0; // extrapolate maximum 3 times the current bracket
 static const double MAX = 20; // max 20 function evaluations per line search
 static const double RATIO = 100; // maximum allowed slope ratio
-#define E (2.7182818284590452353602874713526624977572470937L )
 
-static NeuralNetwork* neuralNetwork;
+static NeuralNetwork *neuralNetwork;
 NeuralNetwork* Fmincg::getNN() {
 	return neuralNetwork;
 }
-GradientParameter* Fmincg::calculate(int thetaRowCount, int noThreads, int numberOfLabels, int maxIterations, double* aList, int ySize, int xColumnSize, double* yList, int totalLayerCount, int* neuronCounts, double lambda, double* yTemp,
-		int testRows) {
+GradientParameter* Fmincg::calculate(int thetaRowCount, int noThreads,
+		int numberOfLabels, int maxIterations, double *aList, int ySize,
+		int xColumnSize, double *yList, int totalLayerCount, int *neuronCounts,
+		double lambda, double *yTemp, int testRows) {
 
 	srand(time(0));
 
 	double nLimit = numeric_limits<double>::epsilon();
-	double* thetas = (double *) malloc(sizeof(double) * thetaRowCount);
+	double *thetas = (double*) malloc(sizeof(double) * thetaRowCount);
 	int columns = 0;
 	for (int i = 0; i < totalLayerCount - 1; i++) {
 		for (int j = 0; j < neuronCounts[i + 1]; j++) {
@@ -61,26 +62,32 @@ GradientParameter* Fmincg::calculate(int thetaRowCount, int noThreads, int numbe
 		}
 	}
 
-	return Fmincg::calculate(noThreads, thetaRowCount, numberOfLabels, maxIterations, aList, ySize, xColumnSize, yList, totalLayerCount, neuronCounts, lambda, thetas, yTemp, testRows);
+	return Fmincg::calculate(noThreads, thetaRowCount, numberOfLabels,
+			maxIterations, aList, ySize, xColumnSize, yList, totalLayerCount,
+			neuronCounts, lambda, thetas, yTemp, testRows);
 
 }
 
-GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numberOfLabels, int maxIterations, double* aList, int ySize, int xColumnSize, double* yList, int layerCount, int* neuronCounts, double lambda, double* tList, double* yTemp,
-		int testRows) {
+GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount,
+		int numberOfLabels, int maxIterations, double *aList, int ySize,
+		int xColumnSize, double *yList, int layerCount, int *neuronCounts,
+		double lambda, double *tList, double *yTemp, int testRows) {
 
-	double* x = tList;
+	double *x = tList;
 
-	neuralNetwork = new NeuralNetwork(noThreads, aList, yList, layerCount, neuronCounts, numberOfLabels, ySize, xColumnSize);
+	neuralNetwork = new NeuralNetwork(noThreads, aList, yList, layerCount,
+			neuronCounts, numberOfLabels, ySize, xColumnSize);
 	int i = 0;
 	int ls_failed = 0;   // no previous line search has failed
 	int n = 0;
 //gd instance will change during the iteration
-	GradientParameter* gd = neuralNetwork->calculateBackCostWithThetas(lambda, x);
+	GradientParameter *gd = neuralNetwork->calculateBackCostWithThetas(lambda,
+			x);
 	n++;
 	double d1 = 0.0; //search direction is steepest and calculate slope
 	double f1 = gd->getCost();
-	double* df1 = new double[thetaRowCount];
-	double* s = new double[thetaRowCount];
+	double *df1 = new double[thetaRowCount];
+	double *s = new double[thetaRowCount];
 	deque<double> results;
 
 	for (int r = 0; r < thetaRowCount; r++) {
@@ -91,9 +98,9 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 	delete gd;
 	double z1 = 1 / (1 - d1);
 
-	double* x0 = new double[thetaRowCount];
-	double* df0 = new double[thetaRowCount];
-	double* df2 = new double[thetaRowCount];
+	double *x0 = new double[thetaRowCount];
+	double *df0 = new double[thetaRowCount];
+	double *df2 = new double[thetaRowCount];
 	double d2 = 0.0;
 	double f3 = 0.0;
 
@@ -113,7 +120,8 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 		}
 
 		//request new gradient after we update X -- octave -->[f2 df2] = eval(argstr);
-		GradientParameter* gd2 = neuralNetwork->calculateBackCostWithThetas(lambda, x);
+		GradientParameter *gd2 = neuralNetwork->calculateBackCostWithThetas(
+				lambda, x);
 		n++;
 		double f2 = gd2->getCost();
 
@@ -133,7 +141,8 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 		delete gd2;
 		while (1) {
 			double z2 = 0.0;
-			while (((f2 > f1 + (z1 * RHO * d1)) | (d2 > (-1 * SIG * d1))) & (M > 0)) {
+			while (((f2 > f1 + (z1 * RHO * d1)) | (d2 > (-1 * SIG * d1)))
+					& (M > 0)) {
 				limit = z1;
 
 				if (f2 > f1) {
@@ -158,7 +167,8 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 					x[r] += z2 * s[r]; //update x as X = X + z2*s;
 				}
 
-				GradientParameter* gd3 = neuralNetwork->calculateBackCostWithThetas(lambda, x);
+				GradientParameter *gd3 =
+						neuralNetwork->calculateBackCostWithThetas(lambda, x);
 				n++;
 				M = M - 1;
 				f2 = gd3->getCost();
@@ -169,7 +179,7 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 					d2 += s[r] * df2[r]; // d2 = df2'*s;
 				}
 				delete gd3;
-				z3 = z3 - z2;                    // z3 is now relative to the location of z2
+				z3 = z3 - z2;        // z3 is now relative to the location of z2
 			}
 
 			if ((f2 > f1 + (z1 * RHO * d1)) | (d2 > -1 * SIG * d1)) {
@@ -181,9 +191,9 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 				break;
 			}
 
-			A = 6 * (f2 - f3) / z3 + 3 * (d2 + d3);                      // make cubic extrapolation
+			A = 6 * (f2 - f3) / z3 + 3 * (d2 + d3);  // make cubic extrapolation
 			B = 3 * (f3 - f2) - z3 * (d3 + 2 * d2);
-			z2 = -d2 * z3 * z3 / (B + sqrt(B * B - A * d2 * z3 * z3));        // num. error possible - ok!
+			z2 = -d2 * z3 * z3 / (B + sqrt(B * B - A * d2 * z3 * z3)); // num. error possible - ok!
 			if (isnan(z2) | isinf(z2) | (z2 < 0)) {
 				if (limit < -1 * 0.5) {
 					z2 = z1 * (EXT - 1);
@@ -209,7 +219,8 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 				x[r] += z2 * s[r]; //update x as X = X + z2*s;
 			}
 
-			GradientParameter* gd4 = neuralNetwork->calculateBackCostWithThetas(lambda, x);
+			GradientParameter *gd4 = neuralNetwork->calculateBackCostWithThetas(
+					lambda, x);
 			n++;
 			M = M - 1;
 			f2 = gd4->getCost();
@@ -224,14 +235,10 @@ GradientParameter* Fmincg::calculate(int noThreads, int thetaRowCount, int numbe
 		if (success) {
 			f1 = f2;
 			results.push_back(f1);
-			printf("\n Next success cost: %0.22f total %i iteration and %i neural calculation complete", f1, i, n);
+			printf(
+					"\n Next success cost: %0.22f total %i iteration and %i neural calculation complete",
+					f1, i, n);
 
-			/*if (i != 1 && (i % 100 == 0)) {
-				double* testXlist = &(aList[(ySize) * xColumnSize]);
-				double* testYlist = &(yTemp[ySize]);
-				neuralNetwork->predict(testRows, testXlist, x, testYlist);
-				//IOUtils::saveThetas(x, thetaRowCount);
-			}*/
 			// Polack-Ribiere direction
 			double sum1 = 0.0;
 			double sum2 = 0.0;
